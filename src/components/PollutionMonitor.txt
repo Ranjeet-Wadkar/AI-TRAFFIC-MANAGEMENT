@@ -1,0 +1,800 @@
+import React, { useState } from "react";
+import {
+  Box,
+  BottomNavigation,
+  BottomNavigationAction,
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+  Paper,
+  Typography,
+  Card,
+  CardContent,
+  Modal,
+  Button,
+  TextField,
+  CircularProgress,
+  Snackbar,
+  Alert,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
+import {
+  FaTrafficLight,
+  FaParking,
+  FaMapMarkerAlt,
+  FaBuilding,
+  FaTree,
+  FaHospital,
+  FaShoppingCart,
+} from "react-icons/fa";
+import { IoMdCloudy } from "react-icons/io";
+import { AiOutlineBell } from "react-icons/ai";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+} from "recharts";
+
+// Theme Configuration
+const theme = createTheme({
+  palette: {
+    mode: "light",
+    primary: {
+      main: "#1976d2",
+      light: "#42a5f5",
+      dark: "#1565c0",
+    },
+    secondary: {
+      main: "#9c27b0",
+      light: "#ba68c8",
+      dark: "#7b1fa2",
+    },
+    success: {
+      main: "#2e7d32",
+      light: "#4caf50",
+      dark: "#1b5e20",
+    },
+    background: {
+      default: "#f8fafc",
+      paper: "#ffffff",
+    },
+    text: {
+      primary: "#1a2027",
+      secondary: "#637381",
+    },
+  },
+  typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    h5: {
+      fontWeight: 600,
+    },
+    h6: {
+      fontWeight: 600,
+    },
+  },
+  shape: {
+    borderRadius: 12,
+  },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: "0 2px 16px 0 rgba(0,0,0,0.08)",
+        },
+      },
+    },
+    MuiBottomNavigation: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#ffffff",
+          borderTop: "1px solid #e0e0e0",
+          height: 65,
+        },
+      },
+    },
+  },
+});
+
+// Mock Data
+const trafficData = [
+  { hour: "6 AM", congestion: 40, prediction: 45 },
+  { hour: "7 AM", congestion: 70, prediction: 75 },
+  { hour: "8 AM", congestion: 90, prediction: 85 },
+  { hour: "9 AM", congestion: 60, prediction: 65 },
+  { hour: "10 AM", congestion: 50, prediction: 55 },
+  { hour: "11 AM", congestion: 45, prediction: 40 },
+];
+
+const pollutionData = [
+  { time: "6 AM", pm25: 35, aqi: 65 },
+  { time: "9 AM", pm25: 45, aqi: 75 },
+  { time: "12 PM", pm25: 55, aqi: 85 },
+  { time: "3 PM", pm25: 40, aqi: 70 },
+  { time: "6 PM", pm25: 35, aqi: 65 },
+];
+
+const buildings = [
+  { id: 1, type: "mall", name: "Central Mall", x: 80, y: 80 },
+  { id: 2, type: "hospital", name: "City Hospital", x: 180, y: 120 },
+  { id: 3, type: "shop", name: "Shopping Center", x: 250, y: 180 },
+  { id: 4, type: "building", name: "Office Complex", x: 130, y: 220 },
+  { id: 5, type: "building", name: "Business Park", x: 280, y: 150 },
+];
+
+const roads = [
+  { id: 1, points: "20,100 380,100", name: "Main Street" },
+  { id: 2, points: "100,20 100,380", name: "Central Avenue" },
+  { id: 3, points: "200,50 200,350", name: "Park Road" },
+  { id: 4, points: "50,200 350,200", name: "Market Street" },
+];
+
+const parkingLocations = [
+  {
+    id: 1,
+    name: "Central Parking",
+    position: { x: 100, y: 100 },
+    available: 5,
+    total: 10,
+    rate: 15,
+  },
+  {
+    id: 2,
+    name: "West Station",
+    position: { x: 200, y: 150 },
+    available: 3,
+    total: 8,
+    rate: 12,
+  },
+  {
+    id: 3,
+    name: "Mall Complex",
+    position: { x: 150, y: 250 },
+    available: 0,
+    total: 15,
+    rate: 20,
+  },
+  {
+    id: 4,
+    name: "East Plaza",
+    position: { x: 300, y: 200 },
+    available: 8,
+    total: 12,
+    rate: 18,
+  },
+];
+
+const pollutionZones = [
+  { id: 1, x: 100, y: 100, radius: 50, level: "high", aqi: 156 },
+  { id: 2, x: 250, y: 150, radius: 40, level: "medium", aqi: 89 },
+  { id: 3, x: 150, y: 250, radius: 45, level: "low", aqi: 45 },
+];
+
+// Building icon component
+const BuildingIcon = ({ type, x, y, name }) => {
+  const getIcon = () => {
+    switch (type) {
+      case "mall":
+        return <FaShoppingCart />;
+      case "hospital":
+        return <FaHospital />;
+      case "shop":
+        return <FaShoppingCart />;
+      default:
+        return <FaBuilding />;
+    }
+  };
+
+  return (
+    <Tooltip title={name}>
+      <IconButton
+        sx={{
+          position: "absolute",
+          left: x,
+          top: y,
+          color: "text.secondary",
+          transform: "scale(0.8)",
+        }}
+      >
+        {getIcon()}
+      </IconButton>
+    </Tooltip>
+  );
+};
+
+// Mock Map Component
+const MockMap = ({ onClick, selectedLocation, showPollution = false }) => {
+  return (
+    <Box
+      sx={{
+        position: "relative",
+        width: "100%",
+        height: 400,
+        bgcolor: "#e8f4f8",
+        borderRadius: 2,
+        overflow: "hidden",
+      }}
+    >
+      {/* Grid background for map */}
+      <svg
+        width="100%"
+        height="100%"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          opacity: 0.1,
+        }}
+      >
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path
+            d="M 40 0 L 0 0 0 40"
+            fill="none"
+            stroke="#000"
+            strokeWidth="0.5"
+          />
+        </pattern>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        {/* Roads */}
+        {roads.map((road) => (
+          <polyline
+            key={road.id}
+            points={road.points}
+            stroke="#cbd5e1"
+            strokeWidth="8"
+            strokeLinecap="round"
+          />
+        ))}
+
+        {/* Road markings */}
+        {roads.map((road) => (
+          <polyline
+            key={`marking-${road.id}`}
+            points={road.points}
+            stroke="#94a3b8"
+            strokeWidth="1"
+            strokeDasharray="5,5"
+          />
+        ))}
+      </svg>
+
+      {/* Buildings */}
+      {buildings.map((building) => (
+        <BuildingIcon
+          key={building.id}
+          type={building.type}
+          x={building.x}
+          y={building.y}
+          name={building.name}
+        />
+      ))}
+
+      {/* Pollution Zones */}
+      {showPollution && (
+        <svg
+          width="100%"
+          height="100%"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+          }}
+        >
+          {pollutionZones.map((zone) => (
+            <g key={zone.id}>
+              <circle
+                cx={zone.x}
+                cy={zone.y}
+                r={zone.radius}
+                fill={
+                  zone.level === "high"
+                    ? "rgba(239, 68, 68, 0.2)"
+                    : zone.level === "medium"
+                    ? "rgba(234, 179, 8, 0.2)"
+                    : "rgba(34, 197, 94, 0.2)"
+                }
+                stroke={
+                  zone.level === "high"
+                    ? "#ef4444"
+                    : zone.level === "medium"
+                    ? "#eab308"
+                    : "#22c55e"
+                }
+                strokeWidth="2"
+              />
+              <text
+                x={zone.x}
+                y={zone.y}
+                textAnchor="middle"
+                fill="#1e293b"
+                fontSize="12"
+                fontWeight="bold"
+              >
+                AQI: {zone.aqi}
+              </text>
+            </g>
+          ))}
+        </svg>
+      )}
+
+      {/* Parking Locations */}
+      {!showPollution &&
+        parkingLocations.map((location) => (
+          <IconButton
+            key={location.id}
+            onClick={() => onClick(location)}
+            sx={{
+              position: "absolute",
+              left: location.position.x,
+              top: location.position.y,
+              color:
+                location.available === 0
+                  ? "error.main"
+                  : selectedLocation?.id === location.id
+                  ? "secondary.main"
+                  : "primary.main",
+              backgroundColor: "white",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              "&:hover": {
+                backgroundColor: "white",
+                transform: "scale(1.1)",
+              },
+            }}
+          >
+            <FaParking />
+          </IconButton>
+        ))}
+
+      {/* Map Legend */}
+      <Card
+        sx={{
+          position: "absolute",
+          bottom: 16,
+          right: 16,
+          width: "auto",
+          minWidth: 150,
+        }}
+      >
+        <CardContent sx={{ py: 1, px: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            {showPollution ? "Air Quality Zones" : "Map Legend"}
+          </Typography>
+          {showPollution ? (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 12,
+                    height: 12,
+                    bgcolor: "error.main",
+                    borderRadius: "50%",
+                  }}
+                />
+                <Typography variant="caption">High Pollution</Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 12,
+                    height: 12,
+                    bgcolor: "warning.main",
+                    borderRadius: "50%",
+                  }}
+                />
+                <Typography variant="caption">Medium Pollution</Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 12,
+                    height: 12,
+                    bgcolor: "success.main",
+                    borderRadius: "50%",
+                  }}
+                />
+                <Typography variant="caption">Low Pollution</Typography>
+              </Box>
+            </Box>
+          ) : (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <FaParking size={12} color="#1976d2" />
+                <Typography variant="caption">Available Parking</Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <FaParking size={12} color="#d32f2f" />
+                <Typography variant="caption">Full Parking</Typography>
+              </Box>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    </Box>
+  );
+};
+
+function MobileTrafficApp() {
+  const [selectedTab, setSelectedTab] = useState(0);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [openBookingModal, setOpenBookingModal] = useState(false);
+  const [bookingDetails, setBookingDetails] = useState({
+    time: "",
+    vehicle: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [snackBarOpen, setSnackBarOpen] = useState(false);
+
+  const handleLocationSelect = (location) => {
+    if (location.available > 0) {
+      setSelectedLocation(location);
+      setOpenBookingModal(true);
+    }
+  };
+
+  const handleBookingSubmit = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setOpenBookingModal(false);
+      setSnackBarOpen(true);
+      setSelectedLocation(null);
+    }, 1500);
+  };
+
+  const renderContent = () => {
+    switch (selectedTab) {
+      case 0: // Traffic
+        return (
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h5" sx={{ mb: 3 }}>
+              Traffic Overview
+            </Typography>
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Live Congestion
+                </Typography>
+                <ResponsiveContainer width="100%" height={250}>
+                  <AreaChart data={trafficData}>
+                    <defs>
+                      <linearGradient
+                        id="congestion"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="#1976d2"
+                          stopOpacity={0.2}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#1976d2"
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="hour" />
+                    <YAxis hide />
+                    <RechartsTooltip />
+                    <Area
+                      type="monotone"
+                      dataKey="congestion"
+                      stroke="#1976d2"
+                      fillOpacity={1}
+                      fill="url(#congestion)"
+                    />
+                    Copy{" "}
+                    <Line
+                      type="monotone"
+                      dataKey="prediction"
+                      stroke="#9c27b0"
+                      strokeDasharray="5 5"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 2,
+              }}
+            >
+              <Card sx={{ bgcolor: "primary.light", color: "white" }}>
+                <CardContent>
+                  <Typography variant="subtitle1">Current Delay</Typography>
+                  <Typography variant="h4">25</Typography>
+                  <Typography variant="body2">minutes</Typography>
+                </CardContent>
+              </Card>
+              <Card sx={{ bgcolor: "secondary.light", color: "white" }}>
+                <CardContent>
+                  <Typography variant="subtitle1">Best Route</Typography>
+                  <Typography variant="h4">A12</Typography>
+                  <Typography variant="body2">via highway</Typography>
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
+        );
+
+      case 1: // Pollution
+        return (
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h5" sx={{ mb: 3 }}>
+              Air Quality
+            </Typography>
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Pollution Map
+                </Typography>
+                <MockMap showPollution={true} />
+              </CardContent>
+            </Card>
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Daily Pollution Levels
+                </Typography>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={pollutionData}>
+                    <XAxis dataKey="time" />
+                    <YAxis hide />
+                    <RechartsTooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="pm25"
+                      name="PM2.5"
+                      stroke="#1976d2"
+                      strokeWidth={2}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="aqi"
+                      name="AQI"
+                      stroke="#9c27b0"
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 2,
+              }}
+            >
+              <Card>
+                <CardContent>
+                  <Typography variant="h3" color="success.main" sx={{ mb: 1 }}>
+                    65
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Current AQI
+                  </Typography>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent>
+                  <Typography variant="h3" color="primary.main" sx={{ mb: 1 }}>
+                    35
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    PM2.5 Level
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
+        );
+
+      case 2: // Parking
+        return (
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h5" sx={{ mb: 3 }}>
+              Parking Spaces
+            </Typography>
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Parking Map
+                </Typography>
+                <MockMap
+                  onClick={handleLocationSelect}
+                  selectedLocation={selectedLocation}
+                />
+              </CardContent>
+            </Card>
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Available Locations
+              </Typography>
+              {parkingLocations.map((location) => (
+                <Card
+                  key={location.id}
+                  sx={{
+                    mb: 2,
+                    cursor: location.available > 0 ? "pointer" : "default",
+                    opacity: location.available > 0 ? 1 : 0.7,
+                  }}
+                  onClick={() =>
+                    location.available > 0 && handleLocationSelect(location)
+                  }
+                >
+                  <CardContent
+                    sx={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <Box>
+                      <Typography variant="h6">{location.name}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {location.available} spots available
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: "right" }}>
+                      <Typography variant="h6" color="primary.main">
+                        ₹{location.rate}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        per hour
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          </Box>
+        );
+
+      case 3: // Alerts
+        return (
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h5" sx={{ mb: 3 }}>
+              Notifications
+            </Typography>
+            <Card>
+              <CardContent>
+                <Typography variant="body1" color="text.secondary">
+                  No new notifications
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ height: "100vh", maxWidth: 480, margin: "0 auto" }}>
+        <Box sx={{ height: "calc(100% - 65px)", overflow: "auto" }}>
+          {renderContent()}
+        </Box>
+
+        <Modal
+          open={openBookingModal}
+          onClose={() => setOpenBookingModal(false)}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Card sx={{ width: "90%", maxWidth: 400, m: 2 }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 3 }}>
+                Book Parking at {selectedLocation?.name}
+              </Typography>
+              <TextField
+                label="Vehicle Number"
+                fullWidth
+                value={bookingDetails.vehicle}
+                onChange={(e) =>
+                  setBookingDetails({
+                    ...bookingDetails,
+                    vehicle: e.target.value,
+                  })
+                }
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Time"
+                type="time"
+                fullWidth
+                value={bookingDetails.time}
+                onChange={(e) =>
+                  setBookingDetails({ ...bookingDetails, time: e.target.value })
+                }
+                sx={{ mb: 3 }}
+              />
+              <Box
+                sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
+              >
+                <Typography>Rate per hour:</Typography>
+                <Typography color="primary.main">
+                  ₹{selectedLocation?.rate}
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                <Button
+                  color="inherit"
+                  onClick={() => setOpenBookingModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleBookingSubmit}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    "Confirm Booking"
+                  )}
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Modal>
+
+        <Snackbar
+          open={snackBarOpen}
+          autoHideDuration={3000}
+          onClose={() => setSnackBarOpen(false)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackBarOpen(false)}
+            severity="success"
+            variant="filled"
+          >
+            Parking spot booked successfully!
+          </Alert>
+        </Snackbar>
+
+        <Paper
+          sx={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            maxWidth: 480,
+            margin: "0 auto",
+          }}
+        >
+          <BottomNavigation
+            value={selectedTab}
+            onChange={(_, newValue) => setSelectedTab(newValue)}
+            showLabels
+          >
+            <BottomNavigationAction label="Traffic" icon={<FaTrafficLight />} />
+            <BottomNavigationAction label="Air Quality" icon={<IoMdCloudy />} />
+            <BottomNavigationAction label="Parking" icon={<FaParking />} />
+            <BottomNavigationAction label="Alerts" icon={<AiOutlineBell />} />
+          </BottomNavigation>
+        </Paper>
+      </Box>
+    </ThemeProvider>
+  );
+}
+
+export default MobileTrafficApp;

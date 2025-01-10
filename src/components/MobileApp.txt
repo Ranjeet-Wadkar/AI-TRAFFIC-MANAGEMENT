@@ -1,0 +1,212 @@
+import React, { useState } from "react";
+import {
+  MapIcon,
+  NavigationIcon,
+  AlertTriangleIcon,
+  CarIcon,
+  WindIcon,
+  XIcon,
+  CheckCircleIcon,
+  SearchIcon,
+  ClockIcon,
+} from "lucide-react";
+
+// Mock data for parking spots
+const parkingSpots = [
+  {
+    id: 1,
+    lat: 18.5204,
+    lng: 73.8567,
+    name: "Central Parking A",
+    available: 12,
+    total: 50,
+    rate: "₹40/hr",
+  },
+  {
+    id: 2,
+    lat: 18.5304,
+    lng: 73.8467,
+    name: "Metro Station P1",
+    available: 8,
+    total: 30,
+    rate: "₹30/hr",
+  },
+  {
+    id: 3,
+    lat: 18.5104,
+    lng: 73.8367,
+    name: "Mall Parking",
+    available: 25,
+    total: 100,
+    rate: "₹50/hr",
+  },
+];
+
+const MobileApp = () => {
+  const [activeTab, setActiveTab] = useState("map");
+  const [selectedParking, setSelectedParking] = useState(null);
+  const [bookingStep, setBookingStep] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleParkingSelect = (parking) => {
+    setSelectedParking(parking);
+    setBookingStep(1);
+  };
+
+  const handleBookingConfirm = () => {
+    setBookingStep(2);
+    setTimeout(() => {
+      setBookingStep(0);
+      setSelectedParking(null);
+    }, 3000);
+  };
+
+  return (
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Header */}
+      <header className="bg-indigo-600 text-white p-4 shadow-lg">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold">Smart Traffic</h1>
+          <div className="flex space-x-2">
+            <button className="p-2 hover:bg-indigo-700 rounded-full">
+              <AlertTriangleIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Search Bar */}
+      <div className="px-4 py-2 bg-white shadow-sm">
+        <div className="relative">
+          <SearchIcon className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search location..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:border-indigo-500"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-hidden relative">
+        {activeTab === "map" && (
+          <div className="h-full">
+            {/* Map Placeholder - In real implementation, replace with actual map component */}
+            <div className="h-full bg-gray-100 relative">
+              <div className="absolute inset-0 bg-[url('https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/73.8567,18.5204,12/600x800@2x?access_token=YOUR_MAPBOX_TOKEN')] bg-cover bg-center">
+                {/* Parking Markers */}
+                {parkingSpots.map((spot) => (
+                  <button
+                    key={spot.id}
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white p-2 rounded-full shadow-lg"
+                    style={{
+                      marginLeft: `${(spot.id - 2) * 100}px`,
+                      marginTop: `${(spot.id - 2) * 50}px`,
+                    }}
+                    onClick={() => handleParkingSelect(spot)}
+                  >
+                    <CarIcon className="w-5 h-5" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Parking Booking Modal */}
+        {selectedParking && (
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl transform transition-transform duration-300 ease-in-out">
+            <div className="p-6">
+              {bookingStep === 1 ? (
+                <>
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h2 className="text-xl font-semibold">
+                        {selectedParking.name}
+                      </h2>
+                      <p className="text-gray-600 text-sm mt-1">
+                        Available: {selectedParking.available}/
+                        {selectedParking.total} spots
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedParking(null)}
+                      className="p-2 hover:bg-gray-100 rounded-full"
+                    >
+                      <XIcon className="w-5 h-5 text-gray-500" />
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-lg font-semibold">
+                        {selectedParking.rate}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Per hour parking rate
+                      </p>
+                    </div>
+                    <div className="flex space-x-4">
+                      <input
+                        type="time"
+                        className="flex-1 p-3 border border-gray-200 rounded-lg"
+                        defaultValue="14:00"
+                      />
+                      <input
+                        type="time"
+                        className="flex-1 p-3 border border-gray-200 rounded-lg"
+                        defaultValue="16:00"
+                      />
+                    </div>
+                    <button
+                      onClick={handleBookingConfirm}
+                      className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+                    >
+                      Book Parking Space
+                    </button>
+                  </div>
+                </>
+              ) : bookingStep === 2 ? (
+                <div className="text-center py-8">
+                  <CheckCircleIcon className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                  <h2 className="text-xl font-semibold">Booking Confirmed!</h2>
+                  <p className="text-gray-600 mt-2">
+                    Your parking spot has been reserved
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Bottom Navigation */}
+      <nav className="bg-white border-t shadow-lg">
+        <div className="flex justify-around p-2">
+          {[
+            { icon: MapIcon, label: "Map", value: "map" },
+            { icon: CarIcon, label: "Parking", value: "parking" },
+            { icon: NavigationIcon, label: "Navigate", value: "navigate" },
+            { icon: WindIcon, label: "AQI", value: "aqi" },
+          ].map((item) => (
+            <button
+              key={item.value}
+              onClick={() => setActiveTab(item.value)}
+              className={`p-2 flex flex-col items-center ${
+                activeTab === item.value
+                  ? "text-indigo-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <item.icon className="w-6 h-6" />
+              <span className="text-xs mt-1">{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
+    </div>
+  );
+};
+
+export default MobileApp;
